@@ -54,7 +54,8 @@ export function makeScorer(metric: Metric, q: Float32Array): Scorer {
     }
     const den = qn * Math.sqrt(vn);
     if (den === 0) return 1;
-    return 1 - dot / den;
+    // Rounding can push an exact match a hair below zero.
+    return Math.max(0, 1 - dot / den);
   };
 }
 
