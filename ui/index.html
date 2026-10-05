@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vecflare dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='.55' stop-color='%237c3aed'/%3E%3Cstop offset='1' stop-color='%23ec4899'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='16' height='16' rx='3' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="brand-name">vecflare</span>
+    </div>
+    <div class="target" id="target" title="Deployment this dashboard talks to">connecting…</div>
+    <div class="side-head">
+      <span>Namespaces</span>
+      <button class="btn small" id="btn-new-ns">New</button>
+    </div>
+    <ul id="ns-list" class="ns-list"><li class="muted">Loading namespaces…</li></ul>
+  </aside>
+
+  <main id="main">
+    <section id="welcome" class="panel">
+      <h1>Pick a namespace</h1>
+      <p class="muted">Namespaces appear on the left once something has been written to them. To create data, run <code>node examples/01-upsert.mjs</code> against this deployment or use <em>New</em> and insert rows.</p>
+    </section>
+
+    <section id="ns-view" class="hidden">
+      <header class="ns-header">
+        <div>
+          <h1 id="ns-name"></h1>
+          <div class="ns-meta" id="ns-meta"></div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btn-build">Build index</button>
+          <button class="btn danger" id="btn-delete-ns">Delete namespace</button>
+        </div>
+      </header>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="overview" class="tab active">Overview</button>
+        <button role="tab" data-tab="rows" class="tab">Rows</button>
+        <button role="tab" data-tab="search" class="tab">Search</button>
+        <button role="tab" data-tab="visualize" class="tab">Visualize</button>
+      </nav>
+
+      <div id="tab-overview" class="tabpanel">
+        <div class="two-col">
+          <dl class="stats" id="stats"></dl>
+          <div>
+            <h2>Deployment</h2>
+            <dl class="stats" id="deploy"></dl>
+            <p class="muted small">Storage cost uses R2's list price of $0.015 per GB-month. Requests and Durable Object time are billed separately; see the README.</p>
+          </div>
+        </div>
+        <div id="build-result" class="note hidden"></div>
+      </div>
+
+      <div id="tab-rows" class="tabpanel hidden">
+        <div class="toolbar">
+          <label>Page size
+            <select id="page-size"><option>25</option><option selected>50</option><option>100</option></select>
+          </label>
+          <button class="btn small" id="btn-rows-first">First page</button>
+          <button class="btn small" id="btn-rows-next">Next page</button>
+          <span class="spacer"></span>
+          <button class="btn small" id="btn-insert">Insert rows</button>
+        </div>
+        <div id="rows-status" class="muted small"></div>
+        <table class="grid" id="rows-table">
+          <thead><tr><th>id</th><th>attributes</th><th class="right"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="tab-search" class="tabpanel hidden">
+        <form id="search-form" class="search-form">
+          <div class="field-row">
+            <label class="grow">Query by row id
+              <input type="text" id="q-id" placeholder="an existing id, its stored vector becomes the query" autocomplete="off">
+            </label>
+            <label>top_k <input type="number" id="q-topk" value="10" min="1" max="1000"></label>
+            <label>nprobe <input type="number" id="q-nprobe" placeholder="8" min="1" max="256"></label>
+          </div>
+          <label>or paste a vector (JSON array)
+            <textarea id="q-vector" rows="2" placeholder="[0.12, -0.33, 0.91, …]" spellcheck="false"></textarea>
+          </label>
+          <label>filters (JSON, optional)
+            <textarea id="q-filter" rows="2" placeholder='["And", [["topic", "Eq", "travel"], ["words", "Gte", 500]]]' spellcheck="false"></textarea>
+          </label>
+          <div class="field-row">
+            <label class="check"><input type="checkbox" id="q-attrs" checked> include attributes</label>
+            <span class="spacer"></span>
+            <button class="btn primary" type="submit">Search</button>
+          </div>
+        </form>
+        <div id="search-status" class="muted small"></div>
+        <table class="grid hidden" id="search-table">
+          <thead><tr><th>#</th><th>id</th><th class="right">dist</th><th>attributes</th><th class="right"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="tab-visualize" class="tabpanel hidden">
+        <div class="toolbar">
+          <label>Sample
+            <select id="viz-n"><option>100</option><option selected>300</option><option>600</option></select>
+          </label>
+          <label>Color by
+            <select id="viz-color"><option value="">(none)</option></select>
+          </label>
+          <button class="btn small" id="btn-viz">Load and project</button>
+          <span class="muted small" id="viz-status"></span>
+        </div>
+        <div class="viz-wrap">
+          <canvas id="viz" width="900" height="520"></canvas>
+          <div id="viz-legend" class="legend"></div>
+        </div>
+        <div id="viz-tip" class="tip hidden"></div>
+        <p class="muted small">2-D PCA of the sampled vectors, computed in the browser. Points close together are similar in the original space only approximately; use Search for exact neighbours.</p>
+      </div>
+    </section>
+  </main>
+
+  <aside id="drawer" class="drawer hidden" aria-label="Row details">
+    <div class="drawer-head">
+      <code id="d-id"></code>
+      <button class="btn small" id="btn-drawer-close">Close</button>
+    </div>
+    <div class="drawer-body">
+      <div class="actions">
+        <button class="btn primary small" id="btn-similar">Find similar</button>
+        <button class="btn small" id="btn-copy-vector">Copy vector</button>
+        <button class="btn danger small" id="btn-delete-row">Delete row</button>
+      </div>
+      <h3>Vector <span class="muted small" id="d-vec-meta"></span></h3>
+      <canvas id="d-vec" width="360" height="72"></canvas>
+      <h3>Attributes</h3>
+      <textarea id="d-attrs" rows="12" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn small" id="btn-save-attrs">Save attributes</button>
+        <span class="muted small" id="d-status"></span>
+      </div>
+    </div>
+  </aside>
+
+  <dialog id="dlg">
+    <form method="dialog" id="dlg-form">
+      <h2 id="dlg-title"></h2>
+      <p id="dlg-text" class="muted"></p>
+      <div id="dlg-fields"></div>
+      <div class="actions end">
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" value="ok" id="dlg-ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+</div>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

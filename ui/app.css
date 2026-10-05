@@ -1,0 +1,119 @@
+/* One accent, used for selection and the primary action. Mono for anything that is data. */
+:root {
+  --bg: #fbfaf8;
+  --panel: #ffffff;
+  --ink: #1b1a19;
+  --muted: #6b6762;
+  --line: #e4e0da;
+  --accent: #4f46e5;
+  --accent-ink: #ffffff;
+  --danger: #b42318;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px/1.45 var(--sans); color: var(--ink); background: var(--bg); }
+code, pre, textarea, input[type=text], .mono, td.id { font-family: var(--mono); font-size: 12.5px; }
+h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 13px; margin: 18px 0 8px; font-weight: 600; text-transform: none; color: var(--muted); }
+h3 { font-size: 13px; margin: 18px 0 6px; font-weight: 600; }
+p { margin: 6px 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.hidden { display: none !important; }
+.spacer { flex: 1; }
+.right { text-align: right; }
+
+#app { display: grid; grid-template-columns: 240px 1fr auto; height: 100vh; }
+#side { border-right: 1px solid var(--line); background: var(--panel); padding: 16px 0; overflow: auto; }
+#main { overflow: auto; padding: 20px 28px 48px; }
+.panel { max-width: 720px; }
+
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 16px 6px; }
+/* The gradient lives here and nowhere else: it is the product mark, matching the project's identity. */
+.mark { width: 18px; height: 18px; border-radius: 4px; background: linear-gradient(135deg, #3b82f6, #7c3aed 55%, #ec4899); }
+.brand-name { font-weight: 600; font-size: 15px; }
+.target { padding: 0 16px 14px; font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 4px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.ns-list { list-style: none; margin: 0; padding: 4px 8px; }
+.ns-list li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 12.5px; }
+.ns-list li:hover { background: #f1efeb; }
+.ns-list li.active { background: var(--accent); color: var(--accent-ink); }
+.ns-list li .count { color: inherit; opacity: .7; font-family: var(--sans); font-size: 12px; }
+.ns-list li.muted { cursor: default; font-family: var(--sans); }
+
+.ns-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.ns-meta { color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions.end { justify-content: flex-end; margin-top: 16px; }
+
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 16px 0 18px; }
+.tab { background: none; border: 0; padding: 8px 12px; font: inherit; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.btn { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 4px; cursor: pointer; }
+.btn:hover { border-color: #c9c3ba; background: #f7f5f1; }
+.btn.small { padding: 4px 9px; font-size: 12px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { background: #4338ca; }
+.btn.danger { color: var(--danger); }
+.btn.danger:hover { background: #fdf2f1; border-color: #e8b4af; }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+.two-col { display: grid; grid-template-columns: minmax(280px, 420px) minmax(280px, 420px); gap: 40px; }
+.stats { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+.stats dt { color: var(--muted); }
+.stats dd { margin: 0; font-family: var(--mono); font-size: 12.5px; }
+.note { margin-top: 18px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+
+.toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.toolbar label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+select, input[type=number], input[type=text], textarea { font: inherit; font-size: 13px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); }
+input[type=number] { width: 76px; }
+textarea { width: 100%; resize: vertical; }
+
+.grid { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); table-layout: auto; }
+.grid th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.grid td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.grid tbody tr:hover { background: #faf8f4; cursor: pointer; }
+/* The attributes column absorbs all spare width and truncates; id and actions never wrap. */
+.grid td.attrs { font-family: var(--mono); font-size: 12px; color: #3d3a36; width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid td.id { white-space: nowrap; }
+.grid td.num { font-family: var(--mono); font-size: 12.5px; text-align: right; white-space: nowrap; }
+.grid td.row-actions { white-space: nowrap; text-align: right; }
+
+.search-form { max-width: 820px; display: flex; flex-direction: column; gap: 10px; background: var(--panel); border: 1px solid var(--line); padding: 14px; border-radius: 4px; }
+.search-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.search-form label.check { flex-direction: row; align-items: center; gap: 6px; }
+.field-row { display: flex; gap: 12px; align-items: flex-end; }
+.field-row .grow { flex: 1; }
+#search-status, #rows-status { margin: 10px 0; min-height: 16px; }
+
+.viz-wrap { display: flex; gap: 16px; align-items: flex-start; }
+#viz { background: var(--panel); border: 1px solid var(--line); max-width: 100%; }
+.legend { font-size: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: #fff; padding: 6px 8px; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; max-width: 360px; white-space: pre-wrap; z-index: 20; }
+
+/* The drawer is the only elevated surface: it sits above the table it came from. */
+.drawer { width: 400px; border-left: 1px solid var(--line); background: var(--panel); overflow: auto; box-shadow: -8px 0 24px rgba(27, 26, 25, .06); }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.drawer-head code { font-size: 13px; word-break: break-all; }
+.drawer-body { padding: 14px 16px 32px; }
+#d-vec { width: 100%; height: 72px; border: 1px solid var(--line); background: #fff; }
+#d-attrs { font-size: 12px; }
+
+dialog { border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; width: min(560px, 92vw); font: inherit; color: var(--ink); }
+dialog::backdrop { background: rgba(27, 26, 25, .25); }
+dialog h2 { margin: 0 0 6px; font-size: 16px; color: var(--ink); }
+dialog label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+
+@media (max-width: 900px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
+  #side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .two-col { grid-template-columns: 1fr; }
+  .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(400px, 100vw); }
+  .field-row { flex-wrap: wrap; }
+}
