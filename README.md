@@ -245,6 +245,21 @@ curl -X POST $VF/v1/namespaces/docs/index -H "Authorization: Bearer $KEY"
 
 `status` is `already_running` if a build is in progress and `skipped` if there is nothing to do.
 
+### Local dashboard
+
+A browser UI in the spirit of Qdrant's, for looking at what is in a deployment: namespaces with their stats, the rows and their attributes, each row's vector, nearest-neighbour search with filters, "find similar" from any row, a 2-D projection of a sample, and the write operations (insert, edit attributes, delete, build index, create or delete a namespace).
+
+```bash
+npm run ui -- --url https://vecflare.<your-subdomain>.workers.dev --key <your key>
+# or: VECFLARE_URL=... VECFLARE_API_KEY=... npm run ui
+```
+
+It serves `http://127.0.0.1:4466` from a small Node process with no dependencies and proxies every call to the Worker, adding the API key on the way, so the key never reaches the browser. It binds to localhost only. Pass `--port` to change the port. It works against `npm run dev` too.
+
+![dashboard: rows and a row's vector](docs/dashboard-rows.png)
+![dashboard: search with a filter](docs/dashboard-search.png)
+![dashboard: 2-D projection coloured by an attribute](docs/dashboard-visualize.png)
+
 ### Runnable examples
 
 [`examples/`](examples/) has one script per operation, plain Node with no dependencies: upsert, search, filters, fetch and paging, patch, delete, index build with `nprobe` comparison, a text search over Workers AI embeddings, and a curl-only version. Point them at your deployment:
