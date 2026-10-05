@@ -1,0 +1,26 @@
+{
+  "name": "vecflare",
+  "version": "0.1.0",
+  "description": "Cheap, fast, open-source vector database that runs on your own Cloudflare account (Workers + Durable Objects + R2).",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "typecheck:test": "tsc --noEmit -p test/tsconfig.json",
+    "bench": "node scripts/bench.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.147.0"
+  },
+  "dependencies": {
+    "hono": "^4.13.0"
+  }
+}

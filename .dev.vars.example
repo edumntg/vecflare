@@ -1,0 +1,2 @@
+# Copy to .dev.vars for local development (wrangler dev)
+API_KEY=dev-key-change-me

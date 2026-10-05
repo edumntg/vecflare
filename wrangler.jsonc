@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vecflare",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Index builds are CPU-bound (k-means + cluster assignment). Allow up to 5 minutes.
+  "limits": { "cpu_ms": 300000 },
+  "r2_buckets": [
+    { "binding": "BUCKET", "bucket_name": "vecflare" }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "NAMESPACE", "class_name": "VecNamespace" },
+      { "name": "INDEXER", "class_name": "Indexer" },
+      { "name": "REGISTRY", "class_name": "Registry" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["VecNamespace", "Indexer", "Registry"] }
+  ]
+}
