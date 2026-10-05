@@ -13,9 +13,16 @@ The design borrows from [turbopuffer](https://turbopuffer.com/architecture): obj
 
 Each namespace is one Durable Object plus one R2 prefix. Writes are batched for 50 ms, written to R2 as an immutable segment file, then recorded in SQLite together with the row's attributes. A query with a filter asks SQLite which rows match, then scores only those vectors. A query without a filter uses the IVF index: compare against the centroids, read the nearest clusters from R2 (or from the 24 MB in-memory cache), score, return. A second Durable Object builds the index in the background whenever enough new data has arrived, so reads and writes never wait for it. Details are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Deploy
+## What you need
 
-You need a Cloudflare account and Node 20 or newer. Durable Objects with SQLite storage are available on the free plan, so the free plan works for trying it out. Index builds of large namespaces need more CPU time than the free plan allows; see [Limits](#limits).
+- **A Cloudflare account.** The free plan is enough to try it: Workers, SQLite-backed Durable Objects and 10 GB of R2 are all included. Index builds of large namespaces need the paid plan's CPU limit; see [Limits](#limits).
+- **Node 20 or newer** on the machine you deploy from.
+- **No Cloudflare API key.** `wrangler login` opens the browser once and stores an OAuth token locally; that is all deploying needs. Only if you deploy from CI or a headless server do you set `CLOUDFLARE_API_TOKEN` (and `CLOUDFLARE_ACCOUNT_ID`) with a token that has *Workers Scripts: Edit*, *Workers R2 Storage: Edit* and *Account Settings: Read*.
+- **A vecflare API key, which you invent.** It is the bearer token your applications send on every request. It is not a Cloudflare credential and Cloudflare never sees it as anything but a Worker secret. Any long random string works.
+
+Your applications then only need two values: the Worker URL and that API key. See [examples/](examples/) for runnable scripts covering every operation.
+
+## Deploy
 
 ```bash
 git clone https://github.com/edumntg/vecflare
@@ -237,6 +244,16 @@ curl -X POST $VF/v1/namespaces/docs/index -H "Authorization: Bearer $KEY"
 ```
 
 `status` is `already_running` if a build is in progress and `skipped` if there is nothing to do.
+
+### Runnable examples
+
+[`examples/`](examples/) has one script per operation, plain Node with no dependencies: upsert, search, filters, fetch and paging, patch, delete, index build with `nprobe` comparison, a text search over Workers AI embeddings, and a curl-only version. Point them at your deployment:
+
+```bash
+export VECFLARE_URL=https://vecflare.<your-subdomain>.workers.dev
+export VECFLARE_API_KEY=<your key>
+node examples/01-upsert.mjs && node examples/02-search.mjs
+```
 
 ### TypeScript client
 
