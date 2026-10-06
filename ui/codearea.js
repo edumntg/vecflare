@@ -36,6 +36,7 @@ export function enhanceJsonArea(ta, opts = {}) {
   ta.parentNode.insertBefore(wrap, ta);
   wrap.append(pre, ta);
   ta.classList.add("code-ta");
+  ta.wrap = "off";
   ta.spellcheck = false;
   ta.setAttribute("autocapitalize", "off");
   ta.setAttribute("autocorrect", "off");
@@ -61,14 +62,22 @@ export function enhanceJsonArea(ta, opts = {}) {
     syncSize();
   }
   function syncSize() {
-    // The pre defines the height so the textarea never scrolls independently of the highlight.
+    // The box grows with the document up to its max height; past that the textarea scrolls and the pre follows.
     const rows = Math.max(Number(ta.rows) || 3, ta.value.split("\n").length);
     wrap.style.setProperty("--rows", String(rows));
+    // Scrollbars shrink the textarea's viewport; give the pre the same slack so it can reach the same scroll range.
+    code.style.paddingBottom = `${ta.offsetHeight - ta.clientHeight}px`;
+    code.style.paddingRight = `${ta.offsetWidth - ta.clientWidth}px`;
+    syncScroll();
+  }
+  function syncScroll() {
+    pre.scrollTop = ta.scrollTop;
     pre.scrollLeft = ta.scrollLeft;
   }
 
   ta.addEventListener("input", render);
-  ta.addEventListener("scroll", () => (pre.scrollLeft = ta.scrollLeft));
+  ta.addEventListener("scroll", syncScroll);
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(syncSize).observe(ta);
   ta.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const { selectionStart: s, selectionEnd: en, value: v } = ta;
