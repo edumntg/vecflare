@@ -256,6 +256,8 @@ npm run ui -- --url https://vecflare.<your-subdomain>.workers.dev --key <your ke
 
 It serves `http://127.0.0.1:4466` from a small Node process with no dependencies and proxies every call to the Worker, adding the API key on the way, so the key never reaches the browser. It binds to localhost only. Pass `--port` to change the port. It works against `npm run dev` too.
 
+Every JSON box lints as you type and reports the line and column of the first problem. Attributes can be edited as key/value fields, with the value's type inferred the way Vault's key/value editor does it (`42` is a number, `true` a boolean, `[1, 2]` an array, anything else a string, `"42"` a string), or as raw JSON, with a switch between the two. Filters have the same switch: a builder for one level of And/Or over conditions, or raw JSON for anything nested.
+
 ![dashboard: rows and a row's vector](docs/dashboard-rows.png)
 ![dashboard: search with a filter](docs/dashboard-search.png)
 ![dashboard: 2-D projection coloured by an attribute](docs/dashboard-visualize.png)

@@ -117,3 +117,26 @@ dialog label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5p
   .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(400px, 100vw); }
   .field-row { flex-wrap: wrap; }
 }
+
+/* Editors: a segmented mode switch, a lint line that turns red, and key/value rows in fields mode. */
+.editor { display: flex; flex-direction: column; gap: 6px; }
+.editor-label { font-size: 12.5px; color: var(--muted); }
+.editor-head { display: flex; align-items: center; gap: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg-btn { font: inherit; font-size: 12px; padding: 3px 10px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer; }
+.seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+.seg-btn.active { background: var(--ink); color: #fff; }
+.seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.json-ta { font-family: var(--mono); font-size: 12px; line-height: 1.5; tab-size: 2; }
+.lint { font-family: var(--mono); font-size: 11.5px; color: var(--muted); min-height: 15px; white-space: pre-wrap; }
+.lint.bad { color: var(--danger); }
+.fields { display: flex; flex-direction: column; gap: 6px; }
+.frow { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(120px, 2fr) 52px auto; gap: 6px; align-items: center; }
+.frow.cond { grid-template-columns: minmax(90px, 1fr) auto minmax(120px, 2fr) auto; }
+.frow input, .frow select { font-family: var(--mono); font-size: 12px; padding: 4px 6px; min-width: 0; }
+.frow.dup .fkey { border-color: var(--danger); }
+.ftype { font-size: 11px; color: var(--muted); text-align: right; }
+.comb { font-size: 12px; padding: 3px 6px; }
+.insert-form { display: flex; flex-direction: column; gap: 8px; }
+.insert-form label { margin-top: 0; }
+.bad-text { color: var(--danger); }

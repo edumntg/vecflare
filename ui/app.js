@@ -1,3 +1,5 @@
+import { createObjectEditor, createFilterEditor, attachLint, lintJson } from "/editors.js";
+
 const $ = (sel) => document.querySelector(sel);
 const fmtBytes = (b) => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : b < 1073741824 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1073741824).toFixed(2)} GB`);
 const fmtDate = (ms) => (ms ? new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "–");
@@ -168,18 +170,109 @@ async function deleteRow(id) {
 
 $("#btn-insert").onclick = async () => {
   const dim = state.stats?.dim;
-  const template = JSON.stringify([{ id: "", vector: dim ? Array(dim).fill(0) : [], attributes: {} }], null, 2);
-  const val = await formDialog("Insert rows", `Rows are upserted: an existing id is replaced. ${dim ? `Vectors must have ${dim} dimensions.` : "The first vector fixes the dimension."}`, [{ name: "rows", label: "rows (JSON array)", type: "textarea", value: template, rows: 10 }], "Upsert");
-  if (!val) return;
+  const rows = await insertDialog(dim);
+  if (!rows) return;
   try {
-    const parsed = JSON.parse(val.rows);
-    const res = await api("POST", `/namespaces/${encodeURIComponent(state.ns)}/upsert`, { rows: parsed });
-    $("#rows-status").textContent = `Upserted ${res.upserted} row(s).`;
+    const res = await api("POST", `/namespaces/${encodeURIComponent(state.ns)}/upsert`, { rows });
     await Promise.all([loadRows(true), refreshStats(), loadNamespaces()]);
+    $("#rows-status").textContent = `Upserted ${res.upserted} row(s). ${$("#rows-status").textContent}`;
   } catch (err) {
     alert(`Upsert failed: ${err.message}`);
   }
 };
+
+/** Insert dialog with a Form mode (one row: id, vector, attributes as fields) and a JSON mode (an array of rows). */
+function insertDialog(dim) {
+  const dlg = $("#dlg");
+  $("#dlg-title").textContent = "Insert rows";
+  $("#dlg-text").textContent = `Rows are upserted: an existing id is replaced. ${dim ? `Vectors must have ${dim} dimensions.` : "The first vector fixes the dimension."}`;
+  $("#dlg-ok").textContent = "Upsert";
+  const wrap = $("#dlg-fields");
+  wrap.innerHTML = `
+    <div class="editor-head"><div class="seg" role="group"><button type="button" class="seg-btn active" data-m="form">Form</button><button type="button" class="seg-btn" data-m="json">JSON</button></div></div>
+    <div class="insert-form" data-pane="form">
+      <label>id <input type="text" name="id" autocomplete="off" placeholder="unique id, up to 256 bytes"></label>
+      <label>vector (JSON array) <textarea name="vector" rows="3" spellcheck="false" class="json-ta" placeholder="${dim ? `[${Array(Math.min(dim, 4)).fill("0").join(", ")}${dim > 4 ? ", …" : ""}]` : "[0.1, 0.2, …]"}"></textarea></label>
+      <div class="lint" data-lint="vector"></div>
+      <div class="editor-label">attributes</div>
+      <div class="editor" data-editor="attrs"></div>
+    </div>
+    <div class="insert-form hidden" data-pane="json">
+      <label>rows (JSON array) <textarea name="rows" rows="10" spellcheck="false" class="json-ta"></textarea></label>
+      <div class="lint" data-lint="rows"></div>
+    </div>`;
+  let mode = "form";
+  const attrs = createObjectEditor(wrap.querySelector("[data-editor=attrs]"), { value: {}, rows: 6 });
+  const vecTa = wrap.querySelector("textarea[name=vector]");
+  const rowsTa = wrap.querySelector("textarea[name=rows]");
+  rowsTa.value = JSON.stringify([{ id: "", vector: dim ? Array(dim).fill(0) : [], attributes: {} }], null, 2);
+  const vecCheck = (v) => {
+    if (!Array.isArray(v) || v.length === 0) return "a vector is a non-empty array of numbers";
+    const bad = v.findIndex((x) => typeof x !== "number" || !Number.isFinite(x));
+    if (bad >= 0) return `element ${bad} is not a number`;
+    return dim && v.length !== dim ? `${v.length} dims, but this namespace uses ${dim}` : { ok: `valid · ${v.length} dims` };
+  };
+  attachLint(vecTa, wrap.querySelector("[data-lint=vector]"), vecCheck);
+  attachLint(rowsTa, wrap.querySelector("[data-lint=rows]"), (v) => {
+    if (!Array.isArray(v) || v.length === 0) return "rows must be a non-empty array";
+    for (let i = 0; i < v.length; i++) {
+      const r = v[i];
+      if (!r || typeof r !== "object" || Array.isArray(r)) return `rows[${i}] is not an object`;
+      if (typeof r.id !== "string" || !r.id) return `rows[${i}].id must be a non-empty string`;
+      const p = vecCheck(r.vector);
+      if (typeof p === "string") return `rows[${i}].vector: ${p}`;
+      if (r.attributes !== undefined && (typeof r.attributes !== "object" || r.attributes === null || Array.isArray(r.attributes))) return `rows[${i}].attributes must be an object`;
+    }
+    return { ok: `valid · ${v.length} row${v.length === 1 ? "" : "s"}` };
+  });
+  const collectForm = () => {
+    const id = wrap.querySelector("input[name=id]").value.trim();
+    if (!id) throw new Error("id is required");
+    const l = lintJson(vecTa.value);
+    if (!l.ok) throw new Error(`vector: ${l.empty ? "required" : `line ${l.line}, col ${l.col}: ${l.message}`}`);
+    const p = vecCheck(l.value);
+    if (typeof p === "string") throw new Error(`vector: ${p}`);
+    return [{ id, vector: l.value, attributes: attrs.get() }];
+  };
+  const collectJson = () => {
+    const l = lintJson(rowsTa.value);
+    if (!l.ok) throw new Error(`rows: line ${l.line}, col ${l.col}: ${l.message}`);
+    return l.value;
+  };
+  for (const b of wrap.querySelectorAll(".seg-btn")) {
+    b.onclick = () => {
+      const next = b.dataset.m;
+      if (next === mode) return;
+      // Carry the single form row into JSON mode when it is complete; otherwise just switch panes.
+      if (next === "json") { try { rowsTa.value = JSON.stringify(collectForm(), null, 2); rowsTa.dispatchEvent(new Event("input")); } catch {} }
+      mode = next;
+      for (const x of wrap.querySelectorAll(".seg-btn")) x.classList.toggle("active", x.dataset.m === mode);
+      for (const pane of wrap.querySelectorAll("[data-pane]")) pane.classList.toggle("hidden", pane.dataset.pane !== mode);
+    };
+  }
+  dlg.showModal();
+  wrap.querySelector("input[name=id]").focus();
+  return new Promise((resolve) => {
+    const form = $("#dlg-form");
+    form.onsubmit = (e) => {
+      if (e.submitter?.value !== "ok") return;
+      try {
+        form.dataset.rows = JSON.stringify(mode === "form" ? collectForm() : collectJson());
+      } catch (err) {
+        e.preventDefault();
+        $("#dlg-text").textContent = err.message;
+        $("#dlg-text").classList.add("bad-text");
+      }
+    };
+    dlg.onclose = () => {
+      form.onsubmit = null;
+      $("#dlg-text").classList.remove("bad-text");
+      const rows = dlg.returnValue === "ok" && form.dataset.rows ? JSON.parse(form.dataset.rows) : null;
+      delete form.dataset.rows;
+      resolve(rows);
+    };
+  });
+}
 
 // ---- drawer ----
 
@@ -187,7 +280,7 @@ async function openDrawer(id) {
   const d = $("#drawer");
   d.classList.remove("hidden");
   $("#d-id").textContent = id;
-  $("#d-attrs").value = "";
+  attrsEditor.set({});
   $("#d-status").textContent = "loading…";
   $("#d-vec-meta").textContent = "";
   try {
@@ -195,7 +288,7 @@ async function openDrawer(id) {
     const row = res.rows[0];
     if (!row) throw new Error("row no longer exists");
     state.drawerRow = row;
-    $("#d-attrs").value = JSON.stringify(row.attributes ?? {}, null, 2);
+    attrsEditor.set(row.attributes ?? {});
     $("#d-status").textContent = "";
     drawVector($("#d-vec"), row.vector ?? []);
     const v = row.vector ?? [];
@@ -220,7 +313,7 @@ $("#btn-copy-vector").onclick = async () => {
 $("#btn-save-attrs").onclick = async () => {
   if (!state.drawerRow) return;
   try {
-    const next = JSON.parse($("#d-attrs").value);
+    const next = attrsEditor.get();
     const current = state.drawerRow.attributes ?? {};
     // patch merges, so keys removed in the editor are sent as null to delete them
     const patch = { ...next };
@@ -233,6 +326,8 @@ $("#btn-save-attrs").onclick = async () => {
     $("#d-status").textContent = `Not saved: ${err.message}`;
   }
 };
+
+const attrsEditor = createObjectEditor($("#d-attrs-editor"), { value: {}, rows: 12 });
 
 function drawVector(canvas, v) {
   const ctx = canvas.getContext("2d");
@@ -262,6 +357,15 @@ async function findSimilar(id) {
   runSearch();
 }
 
+const filterEditor = createFilterEditor($("#q-filter-editor"));
+attachLint($("#q-vector"), $("#q-vector-lint"), (v) => {
+  if (!Array.isArray(v) || v.length === 0) return "the query must be a non-empty array of numbers";
+  const bad = v.findIndex((x) => typeof x !== "number" || !Number.isFinite(x));
+  if (bad >= 0) return `element ${bad} is not a number`;
+  const dim = state.stats?.dim;
+  return dim && v.length !== dim ? `${v.length} dims, but this namespace uses ${dim}` : { ok: `valid · ${v.length} dims` };
+});
+
 $("#search-form").onsubmit = (e) => {
   e.preventDefault();
   runSearch();
@@ -272,11 +376,13 @@ async function runSearch() {
   const table = $("#search-table");
   const id = $("#q-id").value.trim();
   const vecText = $("#q-vector").value.trim();
-  const filterText = $("#q-filter").value.trim();
   let vector;
   try {
-    if (vecText) vector = JSON.parse(vecText);
-    else if (id) {
+    if (vecText) {
+      const l = lintJson(vecText);
+      if (!l.ok) throw new Error(`vector: line ${l.line}, col ${l.col}: ${l.message}`);
+      vector = l.value;
+    } else if (id) {
       status.textContent = `Fetching the vector of ${id}…`;
       const res = await api("POST", `/namespaces/${encodeURIComponent(state.ns)}/rows`, { ids: [id], include_vectors: true });
       if (!res.rows[0]) throw new Error(`no row with id “${id}”`);
@@ -284,7 +390,8 @@ async function runSearch() {
     } else throw new Error("give a row id or paste a vector");
     const body = { vector, top_k: Number($("#q-topk").value) || 10, include_attributes: $("#q-attrs").checked };
     if ($("#q-nprobe").value) body.nprobe = Number($("#q-nprobe").value);
-    if (filterText) body.filters = JSON.parse(filterText);
+    const filters = filterEditor.get();
+    if (filters !== undefined) body.filters = filters;
     status.textContent = "Searching…";
     const t0 = performance.now();
     const res = await api("POST", `/namespaces/${encodeURIComponent(state.ns)}/query`, body);

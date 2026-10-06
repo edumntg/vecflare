@@ -85,11 +85,11 @@
             <label>nprobe <input type="number" id="q-nprobe" placeholder="8" min="1" max="256"></label>
           </div>
           <label>or paste a vector (JSON array)
-            <textarea id="q-vector" rows="2" placeholder="[0.12, -0.33, 0.91, …]" spellcheck="false"></textarea>
+            <textarea id="q-vector" rows="2" placeholder="[0.12, -0.33, 0.91, …]" spellcheck="false" class="json-ta"></textarea>
           </label>
-          <label>filters (JSON, optional)
-            <textarea id="q-filter" rows="2" placeholder='["And", [["topic", "Eq", "travel"], ["words", "Gte", 500]]]' spellcheck="false"></textarea>
-          </label>
+          <div id="q-vector-lint" class="lint"></div>
+          <div class="editor-label">filters (optional)</div>
+          <div id="q-filter-editor" class="editor"></div>
           <div class="field-row">
             <label class="check"><input type="checkbox" id="q-attrs" checked> include attributes</label>
             <span class="spacer"></span>
@@ -138,7 +138,7 @@
       <h3>Vector <span class="muted small" id="d-vec-meta"></span></h3>
       <canvas id="d-vec" width="360" height="72"></canvas>
       <h3>Attributes</h3>
-      <textarea id="d-attrs" rows="12" spellcheck="false"></textarea>
+      <div id="d-attrs-editor" class="editor"></div>
       <div class="actions">
         <button class="btn small" id="btn-save-attrs">Save attributes</button>
         <span class="muted small" id="d-status"></span>
