@@ -34,3 +34,17 @@ describe("filter shape", () => {
     expect(checkFilterShape(["And", []])).toContain("non-empty");
   });
 });
+
+describe("json highlight", () => {
+  it("colours keys, strings, numbers, keywords and punctuation", async () => {
+    // @ts-ignore no declaration file for the dashboard script
+    const { highlightJson } = await import("../ui/codearea.js");
+    const html = highlightJson('{"a": "x", "n": -1.5e2, "t": true, "z": null}');
+    expect(html).toContain('<span class="tk-key">"a"</span>');
+    expect(html).toContain('<span class="tk-str">"x"</span>');
+    expect(html).toContain('<span class="tk-num">-1.5e2</span>');
+    expect(html).toContain('<span class="tk-kw">true</span>');
+    expect(html).toContain('<span class="tk-kw">null</span>');
+    expect(highlightJson('"<b>"')).toBe('<span class="tk-str">"&lt;b&gt;"</span>');
+  });
+});

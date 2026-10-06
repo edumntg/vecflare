@@ -1,9 +1,10 @@
-import { createObjectEditor, createFilterEditor, attachLint, lintJson } from "/editors.js";
+import { createObjectEditor, createFilterEditor, attachLint, lintJson, highlightJson } from "./editors.js";
 
 const $ = (sel) => document.querySelector(sel);
 const fmtBytes = (b) => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : b < 1073741824 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1073741824).toFixed(2)} GB`);
 const fmtDate = (ms) => (ms ? new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "–");
 const compact = (obj) => (obj == null ? "" : JSON.stringify(obj));
+const colored = (obj) => highlightJson(compact(obj));
 
 async function api(method, path, body) {
   const res = await fetch(`/api${path}`, { method, headers: body !== undefined ? { "content-type": "application/json" } : {}, body: body !== undefined ? JSON.stringify(body) : undefined });
@@ -129,7 +130,7 @@ async function loadRows(first) {
     }
     for (const r of res.rows) {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="id">${esc(r.id)}</td><td class="attrs" title="${esc(compact(r.attributes))}">${esc(compact(r.attributes))}</td>
+      tr.innerHTML = `<td class="id">${esc(r.id)}</td><td class="attrs" title="${esc(compact(r.attributes))}">${colored(r.attributes)}</td>
         <td class="row-actions"><button class="btn small" data-act="similar">Similar</button> <button class="btn small danger" data-act="delete">Delete</button></td>`;
       tr.onclick = (e) => {
         const act = e.target.dataset?.act;
@@ -402,7 +403,7 @@ async function runSearch() {
     tbody.innerHTML = "";
     res.rows.forEach((r, i) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="num">${i + 1}</td><td class="id">${esc(r.id)}${r.id === id ? ' <span class="muted small">(query)</span>' : ""}</td><td class="num">${r.dist.toFixed(5)}</td><td class="attrs" title="${esc(compact(r.attributes))}">${esc(compact(r.attributes))}</td>
+      tr.innerHTML = `<td class="num">${i + 1}</td><td class="id">${esc(r.id)}${r.id === id ? ' <span class="muted small">(query)</span>' : ""}</td><td class="num">${r.dist.toFixed(5)}</td><td class="attrs" title="${esc(compact(r.attributes))}">${colored(r.attributes)}</td>
         <td class="row-actions"><button class="btn small" data-act="similar">Similar</button></td>`;
       tr.onclick = (e) => (e.target.dataset?.act === "similar" ? findSimilar(r.id) : openDrawer(r.id));
       tbody.appendChild(tr);
@@ -512,7 +513,7 @@ $("#viz").onmousemove = (e) => {
   state.viz.hover = best;
   if (best < 0) return tip.classList.add("hidden");
   const row = state.viz.rows[best];
-  tip.textContent = `${row.id}\n${compact(row.attributes).slice(0, 240)}`;
+  tip.innerHTML = `${esc(row.id)}\n${highlightJson(compact(row.attributes).slice(0, 240))}`;
   tip.style.left = `${e.clientX + 12}px`;
   tip.style.top = `${e.clientY + 12}px`;
   tip.classList.remove("hidden");

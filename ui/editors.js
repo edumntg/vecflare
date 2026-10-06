@@ -1,5 +1,7 @@
 // JSON lint, a Fields/JSON editor for objects (in the manner of Vault's key/value editor),
 // and a filter builder that round-trips with the raw filter JSON.
+import { enhanceJsonArea, highlightJson } from "./codearea.js";
+export { highlightJson };
 
 /** Strict JSON validator with line and column. Returns { ok, value } or { ok: false, message, line, col }. */
 export function lintJson(text) {
@@ -11,7 +13,7 @@ export function lintJson(text) {
     for (let k = 0; k < at && k < n; k++) {
       if (text[k] === "\n") { line++; col = 1; } else col++;
     }
-    return { ok: false, message, line, col };
+    return { ok: false, message, line, col, offset: Math.min(at, n) };
   };
   const ws = () => { while (i < n && " \t\n\r".includes(text[i])) i++; };
   const value = () => {
@@ -100,7 +102,7 @@ export function lintJson(text) {
     return Number(m[0]);
   };
   try {
-    if (text.trim() === "") return { ok: false, message: "empty", line: 1, col: 1, empty: true };
+    if (text.trim() === "") return { ok: false, message: "empty", line: 1, col: 1, offset: 0, empty: true };
     const v = value();
     ws();
     if (i < n) throw fail(`unexpected "${text[i]}" after the end of the JSON value`);
@@ -166,9 +168,11 @@ export function createObjectEditor(container, opts = {}) {
   const fields = el("div", { class: "fields" });
   const lint = el("div", { class: "lint" });
   container.replaceChildren(head, ta, fields, lint);
+  const area = enhanceJsonArea(ta);
 
   function lintNow() {
     const l = lintJson(ta.value);
+    area.mark(l.ok || l.empty ? -1 : l.offset);
     if (l.ok) {
       if (!l.value || typeof l.value !== "object" || Array.isArray(l.value)) return setLint(`valid JSON, but attributes must be an object (got ${describeJson(l.value)})`, true);
       return setLint(`valid · ${describeJson(l.value)}`, false);
@@ -223,7 +227,7 @@ export function createObjectEditor(container, opts = {}) {
   function render() {
     bFields.classList.toggle("active", mode === "fields");
     bJson.classList.toggle("active", mode === "json");
-    ta.classList.toggle("hidden", mode !== "json");
+    ta.parentElement.classList.toggle("hidden", mode !== "json");
     fmt.classList.toggle("hidden", mode !== "json");
     fields.classList.toggle("hidden", mode !== "fields");
     if (mode === "json") { ta.value = JSON.stringify(value, null, 2); lintNow(); }
@@ -254,8 +258,10 @@ export function createObjectEditor(container, opts = {}) {
  * is fine, or `{ ok: text }` to replace the default success text.
  */
 export function attachLint(textarea, lintEl, expect) {
+  const area = enhanceJsonArea(textarea);
   const run = () => {
     const l = lintJson(textarea.value);
+    area.mark(l.ok || l.empty ? -1 : l.offset);
     if (l.empty) { lintEl.textContent = ""; lintEl.classList.remove("bad"); return; }
     if (!l.ok) { lintEl.textContent = `line ${l.line}, col ${l.col}: ${l.message}`; lintEl.classList.add("bad"); return; }
     const r = expect?.(l.value);
@@ -291,6 +297,7 @@ export function createFilterEditor(container, opts = {}) {
   const list = el("div", { class: "fields" });
   const lint = el("div", { class: "lint" });
   container.replaceChildren(head, ta, list, lint);
+  const area = enhanceJsonArea(ta, { gutter: false });
 
   const setLint = (t, bad) => { lint.textContent = t; lint.classList.toggle("bad", bad); };
 
@@ -330,6 +337,7 @@ export function createFilterEditor(container, opts = {}) {
   }
   function lintRaw() {
     const l = lintJson(ta.value);
+    area.mark(l.ok || l.empty ? -1 : l.offset);
     if (l.empty) return setLint("no filter · every row is a candidate", false);
     if (!l.ok) return setLint(`line ${l.line}, col ${l.col}: ${l.message}`, true);
     const problem = checkFilterShape(l.value);
@@ -363,7 +371,7 @@ export function createFilterEditor(container, opts = {}) {
   function render() {
     bBuilder.classList.toggle("active", mode === "builder");
     bJson.classList.toggle("active", mode === "json");
-    ta.classList.toggle("hidden", mode !== "json");
+    ta.parentElement.classList.toggle("hidden", mode !== "json");
     list.classList.toggle("hidden", mode !== "builder");
     combSel.classList.toggle("hidden", mode !== "builder" || conds.length < 2);
     if (mode === "json") { ta.value = raw; lintRaw(); } else renderBuilder();
