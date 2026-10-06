@@ -141,16 +141,20 @@ dialog label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5p
 .insert-form label { margin-top: 0; }
 .bad-text { color: var(--danger); }
 
-/* Code areas: the textarea is transparent text over a highlighted <pre> with identical metrics. */
-.code { position: relative; --rows: 3; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); overflow: hidden; }
+/* Code areas: the textarea is transparent text over a highlighted <pre>. Both get the exact same font shorthand,
+   padding and size, and the pre follows the textarea's scroll, so every glyph sits under its own caret position. */
+.code { position: relative; --rows: 3; height: min(calc(var(--rows) * 18px + 12px), 60vh); min-height: 66px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); overflow: hidden; resize: vertical; }
 .code:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
-.code .code-hl, .code .code-ta { margin: 0; padding: 6px 8px 6px 44px; font-family: var(--mono); font-size: 12px; line-height: 1.5; tab-size: 2; white-space: pre; overflow-x: auto; min-height: calc(var(--rows) * 18px + 12px); box-sizing: border-box; width: 100%; }
+.code .code-hl, .code .code-ta, .code .code-hl code { font: 12px/18px var(--mono); font-variant-ligatures: none; letter-spacing: 0; word-spacing: 0; tab-size: 2; white-space: pre; }
+.code .code-hl, .code .code-ta { margin: 0; padding: 6px 8px 6px 44px; box-sizing: border-box; width: 100%; height: 100%; }
 .code.no-gutter .code-hl, .code.no-gutter .code-ta { padding-left: 8px; }
 .code .code-hl { position: absolute; inset: 0; pointer-events: none; color: var(--ink); counter-reset: ln; overflow: hidden; }
-.code .code-ta { position: relative; display: block; background: transparent; color: transparent; caret-color: var(--ink); border: 0; outline: 0; resize: vertical; height: calc(var(--rows) * 18px + 12px); max-height: 60vh; }
+.code .code-hl code { display: block; }
+.code .code-ta { position: relative; display: block; background: transparent; color: transparent; caret-color: var(--ink); border: 0; outline: 0; resize: none; overflow: auto; }
 .code .code-ta::selection { background: rgba(79, 70, 229, .18); }
-.code .ln { counter-increment: ln; min-height: 18px; }
+.code .ln { height: 18px; }
 .code:not(.no-gutter) .ln::before { content: counter(ln); position: absolute; left: 0; width: 32px; text-align: right; color: #b3ada4; user-select: none; }
+.code .ln { counter-increment: ln; }
 .code:not(.no-gutter)::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 38px; background: #f6f4f0; border-right: 1px solid var(--line); }
 /* Token colours mirror the type badges and the visualize legend: one hue per JSON type. */
 .tk-key { color: #4338ca; }
